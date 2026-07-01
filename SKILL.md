@@ -133,4 +133,4 @@ python scripts/github_release.py \
 ## 资源引用
 
 - 详细 API 参数见 references/github_api.md
-- README 模板见 assets/readme_templates/
+- README 模板见 `references/readme_template.{en,zh,ja}.md`
