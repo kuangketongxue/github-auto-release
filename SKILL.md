@@ -14,6 +14,7 @@ description: 自动将本地项目开源到 GitHub，包含隐私数据扫描、
 2. **自动创建仓库**：通过 GitHub API 创建远程仓库
 3. **代码推送**：初始化 git 并推送所有代码
 4. **多语言 README**：自动生成英文、中文、日文三个版本的 README
+5. **小红书宣发**：自动生成项目宣发文案并发布到小红书草稿箱（长文模式，非图文模式）
 
 ## 使用前提
 
@@ -42,6 +43,8 @@ python scripts/github_release.py \
 - `--private`：创建私有仓库（默认：false，公开）
 - `--readme-langs`：README 语言版本，逗号分隔（默认：en,zh,ja）
 - `--skip-privacy-check`：跳过隐私扫描（不推荐）
+- `--publish-xhs`：发布宣发文案到小红书草稿箱（长文模式，非图文模式）
+- `--xhs-cover`：小红书封面图路径（可选，默认自动查找项目中的 cover.jpg 等）
 
 ## 隐私扫描规则
 
@@ -74,6 +77,7 @@ python scripts/github_release.py \
 3. **创建仓库**：通过 GitHub API 创建远程仓库
 4. **初始化 Git**：`git init` → `git add` → `git commit` → `git remote add` → `git push`
 5. **生成 README**：根据模板生成多语言 README 并推送
+6. **小红书宣发**（可选）：生成项目宣发文案，自动发布到小红书草稿箱（长文模式）
 
 ## 模板
 
@@ -88,6 +92,43 @@ python scripts/github_release.py \
 - 使用环境变量或命令行参数传入 token
 - 推送前必须经过隐私扫描
 - 推送后立即清理本地 token 缓存
+
+## 小红书宣发（可选）
+
+开源项目时可同时发布宣发文案到小红书草稿箱，吸引更多用户关注。
+
+### 使用方式
+
+```bash
+python scripts/github_release.py \
+  --repo "owner/repo-name" \
+  --path ./project-folder \
+  --token "ghp_xxxx" \
+  --title "Project Title" \
+  --desc "Project description" \
+  --publish-xhs \
+  --xhs-cover path/to/cover.jpg
+```
+
+### 参数说明
+
+- `--publish-xhs`：启用小红书宣发功能
+- `--xhs-cover`：指定封面图路径（可选）。如果不指定，自动在项目根目录查找 `cover.jpg`、`thumbnail.png`、`logo.png` 等常见文件名
+
+### 宣发文案生成
+
+自动从项目标题和描述生成小红书风格文案，包含：
+- 项目介绍
+- 核心卖点
+- 适用人群
+- 快速开始指引
+- 互动引导
+
+### 发布方式
+
+通过 `opencli xiaohongshu publish` 发布为**长文草稿**（单张封面图 + 长文案），而非多图图文模式。
+
+前置依赖：需安装并配置 `opencli`。
 
 ## 资源引用
 

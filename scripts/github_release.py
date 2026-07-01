@@ -145,6 +145,93 @@ def generate_readme(template_path: str, title: str, description: str, lang: str)
     return template.replace("{{title}}", title).replace("{{description}}", description).replace("{{lang}}", lang)
 
 
+def generate_xhs_caption(title: str, description: str) -> str:
+    """Generate Xiaohongshu promotional caption from project info."""
+    caption = f"""🔥 发现一个超棒的开源项目：{title}
+
+{description}
+
+✨ 为什么推荐这个项目？
+• 功能强大，开箱即用
+• 代码规范，易于二次开发
+• 持续维护，社区活跃
+
+💡 适合谁用？
+• 想要提升效率的开发者
+• 需要自动化工具的技术团队
+• 对开源感兴趣的学习者
+
+🚀 快速开始：
+1. 访问 GitHub 仓库获取源码
+2. 按照 README 指引安装配置
+3. 开始使用，遇到问题欢迎提 Issue
+
+---
+如果觉得有用，别忘了点赞👍、收藏⭐、分享给更多朋友！
+关注我，持续分享优质开源项目和技术干货。
+
+#开源项目 #技术分享 #编程 #效率工具 #开发者
+"""
+    return caption.strip()
+
+
+def find_cover_image(local_path: str) -> str:
+    """Find a suitable cover image in the project."""
+    path = Path(local_path)
+    candidates = [
+        "cover.png", "cover.jpg", "cover.jpeg", "cover.gif",
+        "thumbnail.png", "thumbnail.jpg", "thumbnail.jpeg",
+        "banner.png", "banner.jpg", "banner.jpeg",
+        "icon.png", "icon.jpg", "logo.png", "logo.jpg",
+    ]
+    for name in candidates:
+        candidate = path / name
+        if candidate.exists() and candidate.is_file():
+            return str(candidate)
+
+    # Search in common subdirectories
+    for subdir in ["assets", "images", "img", "media", "static"]:
+        subpath = path / subdir
+        if subpath.exists() and subpath.is_dir():
+            for name in candidates:
+                candidate = subpath / name
+                if candidate.exists() and candidate.is_file():
+                    return str(candidate)
+
+    return ""
+
+
+def publish_xiaohongshu_draft(title: str, cover_image: str, caption: str) -> dict:
+    """Publish long-text draft to Xiaohongshu via opencli."""
+    if not cover_image or not Path(cover_image).exists():
+        return {"success": False, "error": "Cover image not found"}
+
+    # Build opencli command
+    cmd = ["opencli", "xiaohongshu", "publish", "--title", title, "--images", cover_image, "--draft", "--", caption]
+
+    # Windows compatibility
+    env = os.environ.copy()
+    env["OPENCLI_BROWSER_COMMAND_TIMEOUT"] = "300000"
+    if sys.platform == 'win32' and cmd[0] == 'opencli':
+        cmd[0] = 'opencli.cmd'
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, timeout=300, env=env)
+        stdout = result.stdout.decode('utf-8', errors='replace') if result.stdout else ''
+        stderr = result.stderr.decode('utf-8', errors='replace') if result.stderr else ''
+
+        if "暂存成功" in stdout or "成功" in stdout or "ok: true" in stdout.lower():
+            return {"success": True, "output": stdout}
+        else:
+            return {"success": False, "error": stderr or stdout[:200]}
+    except subprocess.TimeoutExpired:
+        return {"success": False, "error": "TIMEOUT"}
+    except FileNotFoundError:
+        return {"success": False, "error": "opencli not found. Please install opencli first."}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
 def main():
     parser = argparse.ArgumentParser(description="GitHub Auto Release Tool")
     parser.add_argument("--repo", required=True, help="Repository name (owner/repo-name)")
@@ -156,6 +243,8 @@ def main():
     parser.add_argument("--readme-langs", default="en,zh,ja", help="Comma-separated README languages")
     parser.add_argument("--template", help="README template path")
     parser.add_argument("--skip-privacy-check", action="store_true", help="Skip privacy scan")
+    parser.add_argument("--publish-xhs", action="store_true", help="Publish promotional text to Xiaohongshu drafts")
+    parser.add_argument("--xhs-cover", help="Cover image path for Xiaohongshu post")
     args = parser.parse_args()
 
     # Get token
@@ -200,7 +289,7 @@ def main():
     print("     Code pushed successfully.")
 
     # Step 4: Generate README
-    print("[4/4] Generating multi-language README...")
+    print("[4/5] Generating multi-language README...")
     langs = [l.strip() for l in args.readme_langs.split(",")]
     for lang in langs:
         content = generate_readme(args.template, args.title, args.desc, lang)
@@ -208,6 +297,21 @@ def main():
         readme_path = local_path / readme_name
         readme_path.write_text(content, encoding="utf-8")
         print(f"     Generated {readme_name}")
+
+    # Step 5: Publish to Xiaohongshu (optional)
+    if args.publish_xhs:
+        print("[5/5] Publishing to Xiaohongshu drafts...")
+        cover_image = args.xhs_cover or find_cover_image(str(local_path))
+        if not cover_image:
+            print("     Warning: No cover image found. Skipping Xiaohongshu publish.")
+            print("     Provide --xhs-cover or add cover.jpg to project root.")
+        else:
+            caption = generate_xhs_caption(args.title, args.desc)
+            result = publish_xiaohongshu_draft(args.title, cover_image, caption)
+            if result["success"]:
+                print("     Xiaohongshu draft published successfully.")
+            else:
+                print(f"     Xiaohongshu publish failed: {result['error']}", file=sys.stderr)
 
     print("\nDone! Repository available at:")
     print(f"  https://github.com/{args.repo}")

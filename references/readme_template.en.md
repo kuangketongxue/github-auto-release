@@ -15,3 +15,9 @@ git clone https://github.com/{{repo}}/{{title}}.git
 ## License
 
 MIT
+
+---
+
+## Promotion
+
+This project is automatically promoted on Xiaohongshu when released via github-auto-release skill.

@@ -15,3 +15,9 @@ git clone https://github.com/{{repo}}/{{title}}.git
 ## ライセンス
 
 MIT
+
+---
+
+## プロモーション
+
+このプロジェクトは github-auto-release skill を使用して公開する際、自動的に Xiaohongshu の草稿箱に宣伝文が投稿されます。
